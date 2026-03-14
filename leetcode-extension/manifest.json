@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "LeetCode Tracker",
+  "version": "1.0",
+  "description": "Tracks opened LeetCode problems and sends them to backend",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": [
+    "http://127.0.0.1:5000/*",
+    "https://leetcode.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/problems/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
