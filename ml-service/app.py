@@ -10,7 +10,7 @@ app = FastAPI()
 # ✅ CORS FIX (THIS SOLVES YOUR NETWORK ERROR)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React app
+    allow_origins=["*"],  # React app
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -86,4 +86,3 @@ def predict(topic: str, difficulty: str):
     }
 
 
-    #python -m uvicorn app:app --reload --port 8000
