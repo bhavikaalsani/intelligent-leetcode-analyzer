@@ -17,7 +17,10 @@ app.add_middleware(
 )
 
 # MongoDB connection
-client = MongoClient("mongodb+srv://leetcode_user:1234567890@cluster0.oyxxp2k.mongodb.net/leetcode_analyzer?retryWrites=true&w=majority")
+from pymongo import MongoClient
+import os
+
+client = MongoClient(os.getenv("MONGO_URI"))
 db = client["leetcode_analyzer"]
 collection = db["submissions"]
 
