@@ -1,3 +1,5 @@
+// backend/server.js
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -10,6 +12,9 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+/* ===================== ENV VARIABLES ===================== */
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || "https://leetcode-ml-service.onrender.com";
 
 /* ===================== DB ===================== */
 mongoose
@@ -25,10 +30,14 @@ app.get("/", (req, res) => {
 /* ===================== SUBMISSIONS ===================== */
 app.post("/api/submissions", async (req, res) => {
   try {
+    console.log("📥 Incoming submission from extension:", req.body);
+
     const submission = new Submission(req.body);
     await submission.save();
+
     res.status(201).json({ message: "Submission saved", submission });
   } catch (err) {
+    console.error("❌ Error saving submission:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -45,7 +54,6 @@ app.post("/api/auth/login", (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).json({ error: "Username required" });
 
-  // Create fake session token
   const token = Math.random().toString(36).slice(2);
   sessions.set(token, { username });
 
@@ -58,20 +66,6 @@ app.get("/api/auth/me", (req, res) => {
     return res.status(401).json({ error: "Not logged in" });
   }
   res.json(sessions.get(token));
-});
-
-app.post("/api/submissions", async (req, res) => {
-  try {
-    console.log("📥 Incoming submission from extension:", req.body); // 👈 ADD THIS
-
-    const submission = new Submission(req.body);
-    await submission.save();
-
-    res.status(201).json({ message: "Submission saved", submission });
-  } catch (err) {
-    console.error("❌ Error saving submission:", err); // 👈 ADD THIS
-    res.status(500).json({ error: err.message });
-  }
 });
 
 /* ===================== ANALYTICS ===================== */
@@ -112,7 +106,7 @@ app.get("/api/stats/by-day", async (req, res) => {
   res.json(data);
 });
 
-// 📡 Dynamic ML prediction based on weakest topic of user
+/* ===================== ML PREDICTION ===================== */
 app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
   try {
     const { username } = req.params;
@@ -132,7 +126,7 @@ app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
           accuracy: { $cond: [{ $eq: ["$total", 0] }, 0, { $divide: ["$ac", "$total"] }] }
         }
       },
-      { $sort: { accuracy: 1 } }, // weakest first
+      { $sort: { accuracy: 1 } },
       { $limit: 1 }
     ]);
 
@@ -143,7 +137,7 @@ app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
     const weakestTopic = stats[0].topic;
 
     const mlRes = await fetch(
-      `http://127.0.0.1:8000/ml/predict?topic=${weakestTopic}&difficulty=easy`
+      `${ML_SERVICE_URL}/ml/predict?topic=${weakestTopic}&difficulty=easy`
     );
     const mlData = await mlRes.json();
 
@@ -157,36 +151,49 @@ app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
   }
 });
 
-/* ===================== RECOMMENDATION ===================== */
 app.get("/api/ml/recommend-next/:username", async (req, res) => {
-  const { username } = req.params;
+  try {
+    const { username } = req.params;
 
-  const stats = await Submission.aggregate([
-    { $match: { username } },
-    {
-      $group: {
-        _id: "$topic",
-        total: { $sum: 1 },
-        ac: { $sum: { $cond: [{ $eq: ["$status", "AC"] }, 1, 0] } }
-      }
-    },
-    {
-      $project: {
-        topic: "$_id",
-        accuracy: { $cond: [{ $eq: ["$total", 0] }, 0, { $divide: ["$ac", "$total"] }] }
-      }
-    },
-    { $sort: { accuracy: 1 } }
-  ]);
+    const stats = await Submission.aggregate([
+      { $match: { username } },
+      {
+        $group: {
+          _id: "$topic",
+          total: { $sum: 1 },
+          ac: { $sum: { $cond: [{ $eq: ["$status", "AC"] }, 1, 0] } }
+        }
+      },
+      {
+        $project: {
+          topic: "$_id",
+          accuracy: { $cond: [{ $eq: ["$total", 0] }, 0, { $divide: ["$ac", "$total"] }] }
+        }
+      },
+      { $sort: { accuracy: 1 } }
+    ]);
 
-  if (stats.length === 0) {
-    return res.json({ recommendedTopic: "Array", reason: "No data yet. Start with basics!" });
+    if (!stats.length) {
+      return res.json({ recommendedTopic: "Array", reason: "No data yet. Start with basics!" });
+    }
+
+    const weakestTopic = stats[0].topic;
+
+    // Call ML API for probability (optional)
+    const mlRes = await fetch(
+      `${ML_SERVICE_URL}/ml/predict?topic=${weakestTopic}&difficulty=easy`
+    );
+    const mlData = await mlRes.json();
+
+    res.json({
+      recommendedTopic: weakestTopic,
+      probability: mlData.predicted_acceptance_probability,
+      reason: "This topic has your lowest acceptance rate."
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Recommendation failed" });
   }
-
-  res.json({
-    recommendedTopic: stats[0].topic,
-    reason: "This topic has your lowest acceptance rate."
-  });
 });
 
 /* ===================== PRACTICE PLAN ===================== */
