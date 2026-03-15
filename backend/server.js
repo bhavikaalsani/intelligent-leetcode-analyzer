@@ -163,13 +163,12 @@ app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
 
     console.log("Calling ML:", mlURL);
 
-    const mlRes = await fetch(mlURL);
+   const mlRes = await fetch(mlURL);
 
-    if (!mlRes.ok) {
-      throw new Error("ML service error");
-    }
+const text = await mlRes.text();
+console.log("ML RAW RESPONSE:", text);
 
-    const mlData = await mlRes.json();
+const mlData = JSON.parse(text);
 
     res.json({
       topic: weakestTopic,
