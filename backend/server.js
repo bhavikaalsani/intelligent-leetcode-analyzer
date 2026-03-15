@@ -175,13 +175,13 @@ const mlData = JSON.parse(text);
       probability: mlData.predicted_acceptance_probability,
     });
   } catch (err) {
-    console.error("ML ERROR:", err);
+  console.error("ML ERROR:", err);
 
-    res.status(500).json({
-      error: "ML prediction failed",
-    });
-  }
-});
+  res.status(500).json({
+    error: err.message,
+    stack: err.stack
+  });
+}
 
 /* ===================== RECOMMEND NEXT ===================== */
 
