@@ -136,18 +136,36 @@ app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
 
     const weakestTopic = stats[0].topic;
 
-    const mlRes = await fetch(
-      `${ML_SERVICE_URL}/ml/predict?topic=${weakestTopic}&difficulty=easy`
-    );
+    app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
+  try {
+
+    const weakestTopic = "array"; // temporary fallback
+
+    const mlURL = `${process.env.ML_SERVICE_URL}/ml/predict?topic=${weakestTopic}&difficulty=easy`;
+
+    console.log("Calling ML:", mlURL);
+
+    const mlRes = await fetch(mlURL);
+
+    if (!mlRes.ok) {
+      throw new Error("ML service error");
+    }
+
     const mlData = await mlRes.json();
 
     res.json({
       topic: weakestTopic,
       probability: mlData.predicted_acceptance_probability
     });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "ML prediction failed" });
+
+    console.error("ML ERROR:", err);
+
+    res.status(500).json({
+      error: "ML prediction failed"
+    });
+
   }
 });
 
