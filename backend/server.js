@@ -275,6 +275,26 @@ app.get("/api/leetcode/profile/:username", async (req, res) => {
   }
 });
 
+app.get("/api/ml/debug", async (req, res) => {
+  try {
+    const url = `${process.env.ML_SERVICE_URL}/ml/predict?topic=array&difficulty=easy`;
+    console.log("Calling ML URL:", url);
+
+    const response = await fetch(url);
+    const data = await response.text();
+
+    res.send({
+      ml_url_called: url,
+      ml_response: data
+    });
+
+  } catch (err) {
+    res.send({
+      error: err.message
+    });
+  }
+});
+
 /* ===================== SERVER ===================== */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
