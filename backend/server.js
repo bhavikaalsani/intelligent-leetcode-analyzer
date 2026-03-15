@@ -180,9 +180,27 @@ app.get("/api/ml/recommend-next/:username", async (req, res) => {
     const weakestTopic = stats[0].topic;
 
     // Call ML API for probability (optional)
-    const mlRes = await fetch(
-      `${ML_SERVICE_URL}/ml/predict?topic=${weakestTopic}&difficulty=easy`
-    );
+   try {
+    const mlURL = `${process.env.ML_SERVICE_URL}/ml/predict?topic=array&difficulty=easy`;
+    console.log("Calling ML:", mlURL);
+
+    const mlRes = await fetch(mlURL);
+
+    if (!mlRes.ok) {
+        throw new Error("ML service responded with error");
+    }
+
+    const mlData = await mlRes.json();
+
+    res.json({
+        topic: "array",
+        probability: mlData.predicted_acceptance_probability
+    });
+
+} catch (err) {
+    console.error("ML ERROR:", err);
+    res.status(500).json({ error: "ML prediction failed" });
+}
     const mlData = await mlRes.json();
 
     res.json({
