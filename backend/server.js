@@ -252,6 +252,37 @@ app.get("/api/practice-plan/:username", (req, res) => {
   res.json({ plan });
 });
 
+/* ===================== SIMPLE RECOMMENDATION ===================== */
+app.get("/api/recommend-topic/:username", async (req, res) => {
+  try {
+    const topics = await Submission.aggregate([
+      {
+        $group: {
+          _id: "$topic",
+          total: { $sum: 1 }
+        }
+      },
+      { $sort: { total: 1 } },
+      { $limit: 1 }
+    ]);
+
+    const weakestTopic = topics.length ? topics[0]._id : "Array";
+
+    res.json({
+      recommendedTopic: weakestTopic,
+      reason: "You practiced this topic the least."
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.json({
+      recommendedTopic: "Array",
+      reason: "Start with fundamentals."
+    });
+  }
+});
+
 /* ===================== DEBUG ===================== */
 
 app.get("/api/ml/debug", async (req, res) => {
