@@ -139,49 +139,45 @@ app.get("/api/ml/predict-dynamic/:username", async (req, res) => {
         $group: {
           _id: { $toLower: "$topic" },
           total: { $sum: 1 },
-          ac: {
-            $sum: {
-              $cond: [{ $eq: ["$status", "AC"] }, 1, 0],
-            },
-          },
-        },
+          ac: { $sum: { $cond: [{ $eq: ["$status", "AC"] }, 1, 0] } }
+        }
       },
       {
         $project: {
           topic: "$_id",
-          accuracy: { $divide: ["$ac", "$total"] },
-        },
+          accuracy: { $divide: ["$ac", "$total"] }
+        }
       },
       { $sort: { accuracy: 1 } },
-      { $limit: 1 },
+      { $limit: 1 }
     ]);
 
-    const weakestTopic =
-      stats.length > 0 ? stats[0].topic : "array";
+    const weakestTopic = stats.length > 0 ? stats[0].topic : "array";
 
     const mlURL = `${ML_SERVICE_URL}/ml/predict?topic=${weakestTopic}&difficulty=easy`;
 
     console.log("Calling ML:", mlURL);
 
-   const mlRes = await fetch(mlURL);
+    const mlRes = await fetch(mlURL);
 
-const text = await mlRes.text();
-console.log("ML RAW RESPONSE:", text);
+    const text = await mlRes.text();
+    console.log("ML RAW RESPONSE:", text);
 
-const mlData = JSON.parse(text);
+    const mlData = JSON.parse(text);
 
     res.json({
       topic: weakestTopic,
-      probability: mlData.predicted_acceptance_probability,
+      probability: mlData.predicted_acceptance_probability
     });
-  } catch (err) {
-  console.error("ML ERROR:", err);
 
-  res.status(500).json({
-    error: err.message,
-    stack: err.stack
-  });
-}
+  } catch (err) {
+    console.error("ML ERROR:", err);
+
+    res.status(500).json({
+      error: err.message
+    });
+  }
+});
 
 /* ===================== RECOMMEND NEXT ===================== */
 
