@@ -46,6 +46,7 @@ python -m uvicorn app:app --host 0.0.0.0 --port $PORT
 Environment variables:
 
 ```bash
+PYTHON_VERSION=3.11.9
 MONGO_URI=your_mongodb_connection_string
 CORS_ORIGINS=https://your-dashboard-url,http://localhost:3000
 ```
