@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -20,8 +20,7 @@ function App() {
   const [leetcodeStats, setLeetcodeStats] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const API = "http://127.0.0.1:5000";
-  const ML_API = "http://127.0.0.1:8000";
+  const API = process.env.REACT_APP_API_URL || "http://127.0.0.1:5000";
 
   // ---------- AUTH ----------
   const login = async () => {
@@ -46,7 +45,7 @@ function App() {
   };
 
   // ---------- GLOBAL STATS ----------
-  const loadGlobal = async () => {
+  const loadGlobal = useCallback(async () => {
     try {
       setLoading(true);
       const [s, t, d, r] = await Promise.all([
@@ -65,7 +64,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API]);
 
   // ---------- USER FEATURES ----------
   const loadUserRecommendation = async () => {
@@ -81,11 +80,11 @@ function App() {
   const loadMLPrediction = async () => {
     try {
       const res = await axios.get(
-        `${ML_API}/ml/predict?topic=array&difficulty=easy`
+        `${API}/api/ml/predict?topic=array&difficulty=easy`
       );
       setMlProb(res.data.predicted_acceptance_probability);
     } catch {
-      alert("ML service not running on port 8000");
+      alert("ML service not reachable through backend");
     }
   };
 
@@ -101,7 +100,7 @@ function App() {
 
   useEffect(() => {
     loadGlobal();
-  }, []);
+  }, [loadGlobal]);
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>

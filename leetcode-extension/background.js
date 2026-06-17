@@ -1,15 +1,25 @@
-chrome.runtime.onMessage.addListener(async (message) => {
-  if (message.type === "LEETCODE_SUBMITTED") {
-    try {
-      await fetch("http://127.0.0.1:5000/api/submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(message.payload)
-      });
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type !== "LEETCODE_SUBMITTED") return false;
 
-      console.log("✅ Submission saved");
-    } catch (err) {
-      console.error("Backend error:", err);
-    }
-  }
+  fetch(message.apiUrl || "http://127.0.0.1:5000/api/submissions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(message.payload)
+  })
+    .then(async response => {
+      const body = await response.json();
+      if (!response.ok) {
+        sendResponse({ ok: false, error: body.error || response.statusText });
+        return;
+      }
+
+      console.log("Submission saved:", body);
+      sendResponse({ ok: true, submission: body.submission });
+    })
+    .catch(error => {
+      console.error("Backend error:", error);
+      sendResponse({ ok: false, error: error.message });
+    });
+
+  return true;
 });
