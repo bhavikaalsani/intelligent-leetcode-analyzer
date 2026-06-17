@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
+from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import LabelEncoder
-from xgboost import XGBClassifier
 
 load_dotenv()
 
@@ -90,7 +90,7 @@ def train_model():
     x = df[["topic_enc", "difficulty_enc"]]
     y = df["status"]
 
-    model = XGBClassifier(n_estimators=50, eval_metric="logloss")
+    model = LogisticRegression(max_iter=1000)
     model.fit(x, y)
 
 
